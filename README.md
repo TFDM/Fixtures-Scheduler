@@ -1,1 +1,2 @@
-This is a read me file for the project. I will add more to this later on.
+# Fixtures Scheduler
+A command line application for creating a complete football fixtures schedule.
