@@ -4,7 +4,10 @@ namespace Interfaces
     {
         DateTime StartDate { get; set; }
         DateTime EndDate { get; set; }
+        DayOfWeek PrimaryMatchDay { get; set; }
+        DayOfWeek AlternativeMatchDay { get; set; }
+        List<Models.BankHolidayEvent>? BankHolidays { get; set; }
 
-        int CountSaturdays();
+        int CountMatchdays(bool useAlternativeMatchday = false);
     }
 }
