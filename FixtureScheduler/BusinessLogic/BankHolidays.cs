@@ -2,34 +2,9 @@ using System.Text.Json;
 
 namespace BusinessLogic
 {
-    public class DatesFactory : Interfaces.IDatesFactory
+    public class BankHolidays : Interfaces.IBankHolidays
     {
-        public Interfaces.IDates Create(
-            DateTime startDate,
-            DateTime endDate,
-            DayOfWeek primaryMatchday,
-            DayOfWeek altMatchday)
-        {
-            //Get bank holidays
-            List<Models.BankHolidayEvent>? bankHolidays = GetBankHolidays(startDate, endDate);
-
-            return new Dates
-            {
-                StartDate = startDate,
-                EndDate = endDate,
-                PrimaryMatchDay = primaryMatchday,
-                AlternativeMatchDay = altMatchday,
-                BankHolidays = bankHolidays
-            };
-        }
-
-        /// <summary>
-        /// Gets the bank holidays from the gov.uk website. Uses the start and end date to filter the events down
-        /// </summary>
-        /// <param name="startDate"></param>
-        /// <param name="endDate"></param>
-        /// <returns></returns>
-        private List<Models.BankHolidayEvent>? GetBankHolidays(DateTime startDate, DateTime endDate)
+        public List<Models.BankHolidayEvent>? GetBankHolidays(DateTime startDate, DateTime endDate)
         {
             //Specifies the base url of the uk government website - this is where we'll get the bank holidays from
             HttpClient httpClient = new HttpClient();
@@ -38,7 +13,7 @@ namespace BusinessLogic
             //Make a get request to get the bank holiday data from the government website
             var response = httpClient.GetAsync("bank-holidays.json").GetAwaiter().GetResult();
 
-            //Check if the response status code was succesful
+            //Check if the response status code was successful
             if (response.IsSuccessStatusCode)
             {
                 //Read the json response
@@ -58,6 +33,5 @@ namespace BusinessLogic
 
             return null;
         }
-
     }
 }

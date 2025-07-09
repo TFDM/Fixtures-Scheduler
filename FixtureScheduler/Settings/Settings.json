@@ -1,0 +1,8 @@
+{
+    "Settings": {
+        "StartDate": "2025-08-01T00:00:00",
+        "EndDate": "2026-05-01T00:00:00",
+        "PrimaryMatchDay": "Saturday",
+        "AlternativeMatchday": "Tuesday"
+    }
+}

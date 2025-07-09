@@ -1,31 +1,30 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
-//Sets up the dependency injection and registers interfaces and their implementation classes
-var serviceProvider = new ServiceCollection()
-    .AddSingleton<Interfaces.IDatesFactory, BusinessLogic.DatesFactory>()
-    .BuildServiceProvider();
+//Loads the settings
+var settings = BusinessLogic.Settings.LoadSettings();
 
-//Creates an instance of the DatesFactory
-var datesFactory = serviceProvider.GetRequiredService<Interfaces.IDatesFactory>();
+if (settings == null)
+{
+    return;
+}
 
-//Define a start date and an end date
-//Also sets a primary matchday and an alternative matchday
-var start = new DateTime(2025, 8, 2);
-var end = new DateTime(2026, 5, 1);
-var primaryMatchday = DayOfWeek.Saturday;
-var altMatchDay = DayOfWeek.Tuesday;
+//Defines the number of teams
 var totalNumberOfTeams = 24;
-
-
 
 //Sets the number of rounds needed to play all the games
 //This is (Number of Teams x 2 - 2)
 var numberOfRoundsNeeded = (totalNumberOfTeams - 1) * 2;
 
-//Uses the DatesFactory to create an instance of Dates
-//The start and end dates specified above are passed into the create method
-var dates = datesFactory.Create(start, end, primaryMatchday, altMatchDay);
+//Sets up the dependency injection and registers interfaces and their implementation classes
+//Also passes in the settings created earlier so these can be used elsewhere in the application
+var serviceProvider = new ServiceCollection()
+    .AddSingleton(settings)
+    .AddSingleton<Interfaces.IBankHolidays, BusinessLogic.BankHolidays>()
+    .AddSingleton<Interfaces.IDates, BusinessLogic.Dates>()
+    .BuildServiceProvider();
 
+//Creates an instance of dates
+var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
 
 
 //Counts the number of primary matchdays

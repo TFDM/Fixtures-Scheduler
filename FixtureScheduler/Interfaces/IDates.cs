@@ -2,11 +2,11 @@ namespace Interfaces
 {
     public interface IDates
     {
-        DateTime StartDate { get; set; }
-        DateTime EndDate { get; set; }
-        DayOfWeek PrimaryMatchDay { get; set; }
-        DayOfWeek AlternativeMatchDay { get; set; }
-        List<Models.BankHolidayEvent>? BankHolidays { get; set; }
+        DateTime StartDate { get; }
+        DateTime EndDate { get; }
+        DayOfWeek PrimaryMatchDay { get; }
+        DayOfWeek AlternativeMatchDay { get; }
+        List<Models.BankHolidayEvent>? BankHolidays { get; }
 
         int CountMatchdays(bool useAlternativeMatchday = false);
     }

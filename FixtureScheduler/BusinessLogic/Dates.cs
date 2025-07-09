@@ -2,11 +2,28 @@ namespace BusinessLogic
 {
     public class Dates : Interfaces.IDates
     {
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
-        public DayOfWeek PrimaryMatchDay { get; set; }
-        public DayOfWeek AlternativeMatchDay { get; set; }
-        public List<Models.BankHolidayEvent>? BankHolidays { get; set; }
+        private readonly Models.Settings _settings;
+        private readonly Interfaces.IBankHolidays _bankHolidays;
+
+        public DateTime StartDate { get; private set; }
+        public DateTime EndDate { get; private set; }
+        public DayOfWeek PrimaryMatchDay { get; private set; }
+        public DayOfWeek AlternativeMatchDay { get; private set; }
+        public List<Models.BankHolidayEvent>? BankHolidays { get; private set; }
+
+        public Dates(Models.Settings settings, Interfaces.IBankHolidays bankHolidays)
+        {
+            _settings = settings;
+            _bankHolidays = bankHolidays;
+
+            this.StartDate = _settings.StartDate;
+            this.EndDate = _settings.EndDate;
+            this.PrimaryMatchDay = _settings.PrimaryMatchDay;
+            this.AlternativeMatchDay = _settings.AlternativeMatchday;
+
+            //Gets bank holidays between the supplied dates
+            this.BankHolidays = _bankHolidays.GetBankHolidays(_settings.StartDate, _settings.EndDate);
+        }
 
         /// <summary>
         /// Counts the number of primary or alternative matchdays
