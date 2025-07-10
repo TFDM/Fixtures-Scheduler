@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 
 //Loads the settings
-var settings = BusinessLogic.Settings.LoadSettings();
+var settings = BusinessLogic.ApplicationSettings.LoadSettings();
 
 if (settings == null)
 {
