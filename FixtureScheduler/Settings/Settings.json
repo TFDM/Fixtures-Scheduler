@@ -2,6 +2,28 @@
   "Settings": {
     "StartDate": "01/08/2025",
     "EndDate": "01/05/2026",
+    "ExcludedDates": [
+      {
+        "Date": "13/09/2025",
+        "Reason": "FA Cup 2nd Qualifying Round"
+      },
+      {
+        "Date": "27/09/2025",
+        "Reason": "FA Cup 3rd Qualifying Round"
+      },
+      {
+        "Date": "15/11/2025",
+        "Reason": "FA Trophy 2nd Round"
+      },
+      {
+        "Date": "13/12/2025",
+        "Reason": "FA Trophy 3rd Round"
+      },
+      {
+        "Date": "25/12/2025",
+        "Reason": "Christmas Day"
+      }
+    ],
     "PrimaryMatchday": "Saturday",
     "AlternativeMatchday": "Tuesday"
   }
