@@ -26,6 +26,7 @@ var serviceProvider = new ServiceCollection()
 //Creates an instance of dates
 var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
 
+var availableDates = dates.GetAvailableDates().OrderBy(x => x.Date);
 
 //Counts the number of primary matchdays
 var numberOfPrimaryMatchdays = dates.CountMatchdays(useAlternativeMatchday: false);
