@@ -1,17 +1,33 @@
+using System.Dynamic;
 using System.Globalization;
 using FluentValidation;
 using Microsoft.Extensions.Configuration;
 
 namespace BusinessLogic
 {
-    public class ApplicationSettings
+    public class ApplicationSettings : Interfaces.IApplicationSettings
     {
+        private readonly List<Models.Teams> _teams;
+        public Models.Settings Settings { get; private set; }
+
+        public ApplicationSettings(List<Models.Teams> teams)
+        {
+            //Teams received via dependency injection
+            _teams = teams;
+
+            //Attempt to load the settings from the Settings.json file
+            //They will also be checked to see if they are valid
+            Settings = LoadSettings();
+
+            //The number of rounds needed is calculated using the teams
+            Settings.NumberOfRoundsNeeded = (_teams.Count() - 1) * 2;
+        }
+
         /// <summary>
         /// Loads the settings from the Settings/Settings.json file
-        /// If the settings file can't be load it returns null
         /// </summary>
         /// <returns></returns>
-        public static Models.Settings? LoadSettings()
+        private Models.Settings LoadSettings()
         {
             try
             {
@@ -40,20 +56,24 @@ namespace BusinessLogic
                         StartDate = DateTime.ParseExact(settingsDTO.StartDate, "dd/MM/yyyy", CultureInfo.InvariantCulture),
                         EndDate = DateTime.ParseExact(settingsDTO.EndDate, "dd/MM/yyyy", CultureInfo.InvariantCulture),
                         PrimaryMatchDay = (DayOfWeek)Enum.Parse(typeof(DayOfWeek), settingsDTO.PrimaryMatchday, true),
-                        AlternativeMatchday = (DayOfWeek)Enum.Parse(typeof(DayOfWeek), settingsDTO.AlternativeMatchday, true)
+                        AlternativeMatchday = (DayOfWeek)Enum.Parse(typeof(DayOfWeek), settingsDTO.AlternativeMatchday, true),
+                        ExcludedDates = settingsDTO.ExcludedDates
+                            .Select(dto => new Models.ExcludedDates
+                            {
+                                Date = DateTime.ParseExact(dto.Date, "dd/MM/yyyy", CultureInfo.InvariantCulture),
+                                Reason = dto.Reason
+                            }).ToList()
                     };
                 }
 
-                return null;
+                //Throw an exception
+                throw new FixtureSchedulerException("The Settings.json file wasn't valid. Please check the errors.");
             }
-            catch (FileNotFoundException ex)
+            catch (FileNotFoundException)
             {
-                Console.WriteLine("Unable to find the Settings.json file in the Settings folder");
-                Console.WriteLine("Unable to proccede without settings file");
-                Console.WriteLine(ex.Message);
+                //Throw an exception in the event the file can't be found
+                throw new FixtureSchedulerException(@"Unable to find the Settings.json file in the settings folder.");
             }
-
-            return null;
         }
 
         /// <summary>

@@ -1,28 +1,98 @@
+using Models;
+
 namespace BusinessLogic
 {
     public class Dates : Interfaces.IDates
     {
-        private readonly Models.Settings _settings;
+        private readonly Interfaces.IApplicationSettings _applicationSettings;
         private readonly Interfaces.IBankHolidays _bankHolidays;
+        private List<Models.BankHolidayEvent>? BankHolidays { get; set; }
 
-        public DateTime StartDate { get; private set; }
-        public DateTime EndDate { get; private set; }
-        public DayOfWeek PrimaryMatchDay { get; private set; }
-        public DayOfWeek AlternativeMatchDay { get; private set; }
-        public List<Models.BankHolidayEvent>? BankHolidays { get; private set; }
-
-        public Dates(Models.Settings settings, Interfaces.IBankHolidays bankHolidays)
+        public Dates(Interfaces.IApplicationSettings applicationSettings, Interfaces.IBankHolidays bankHolidays)
         {
-            _settings = settings;
+            //Application settings instance is passed in via dependency injection
+            _applicationSettings = applicationSettings;
+
+            //Bank holidays instance is passed in via dependency injection
             _bankHolidays = bankHolidays;
 
-            this.StartDate = _settings.StartDate;
-            this.EndDate = _settings.EndDate;
-            this.PrimaryMatchDay = _settings.PrimaryMatchDay;
-            this.AlternativeMatchDay = _settings.AlternativeMatchday;
-
             //Gets bank holidays between the supplied dates
-            this.BankHolidays = _bankHolidays.GetBankHolidays(_settings.StartDate, _settings.EndDate);
+            this.BankHolidays = _bankHolidays.GetBankHolidays(_applicationSettings.Settings.StartDate,
+                _applicationSettings.Settings.EndDate);
+        }
+
+        /// <summary>
+        /// Generates a list of available dates
+        /// </summary>
+        /// <returns></returns>
+        public List<Models.AvailableDates> GetAvailableDates()
+        {
+            //Creates a new list of available dates
+            var availableDates = new List<Models.AvailableDates>();
+
+            //Adds the bank holiday dates - takes into account any excluded dates as well
+            availableDates = AddBankHolidayDates(availableDates);
+
+            //Sets the current date variable to the start date
+            var currentDate = _applicationSettings.Settings.StartDate;
+            
+            //Keep looping while the current date is less than or equal to the end date
+            while (currentDate <= _applicationSettings.Settings.EndDate)
+            {
+                //Checks if the current date's day of the week is equal to the primary matchday and the current 
+                //date is not equal to any of the dates in the excluded dates list
+                if (currentDate.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay && !_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == currentDate))
+                {
+                    //Checks to make sure that there isn't already a date in the list
+                    //which is within 1 day in either direction
+                    if (!availableDates.Any(x => x.Date == currentDate.AddDays(-1)) &&
+                        !availableDates.Any(x => x.Date == currentDate.AddDays(1)))
+                    {
+                        //Add the current date to the list of available dates
+                        availableDates.Add(new Models.AvailableDates
+                        {
+                            Date = currentDate,
+                            IsPrimaryMatchday = (currentDate.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
+                        });
+                    }
+                }
+
+                //Add a day to the current date
+                currentDate = currentDate.AddDays(1);
+            }
+
+            return availableDates;
+        }
+
+        /// <summary>
+        /// Adds bank holidays to a list of available dates
+        /// </summary>
+        /// <param name="listOfAvailableDates"></param>
+        /// <returns></returns>
+        private List<Models.AvailableDates> AddBankHolidayDates(List<Models.AvailableDates> listOfAvailableDates)
+        {
+            if (this.BankHolidays != null)
+            {
+                foreach (var bankHoliday in this.BankHolidays)
+                {
+                    if (!_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == bankHoliday.Date))
+                    {
+                        //Checks to make sure that there isn't already a date in the list
+                        //which is within 1 day in either direction
+                        if (!listOfAvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(-1)) &&
+                            !listOfAvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(1)))
+                        {
+                            listOfAvailableDates.Add(new Models.AvailableDates
+                            {
+                                Date = bankHoliday.Date,
+                                IsPrimaryMatchday = (bankHoliday.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
+                            });
+                        }
+                    }
+                }
+            }
+
+            return listOfAvailableDates;
         }
 
         /// <summary>
@@ -36,20 +106,20 @@ namespace BusinessLogic
             var count = 0;
 
             //Sets a variable to the start date - this is used to advance the loop below
-            var currentDate = this.StartDate;
+            var currentDate = _applicationSettings.Settings.StartDate;
 
             //Keeps loop over the dates until the end date is reached
-            while (currentDate <= this.EndDate)
+            while (currentDate <= _applicationSettings.Settings.EndDate)
             {
                 //If the current day in the loop matches either the alternative or primary matchday
                 //the count is increased by one
-                if (currentDate.DayOfWeek == ((useAlternativeMatchday) ? this.AlternativeMatchDay : this.PrimaryMatchDay))
+                if (currentDate.DayOfWeek == ((useAlternativeMatchday) ? _applicationSettings.Settings.AlternativeMatchday : _applicationSettings.Settings.PrimaryMatchDay))
                 {
                     count = count + 1;
                     Console.WriteLine(
                         currentDate.ToString("dd/MM/yyyy") + " is a " +
-                        ((useAlternativeMatchday) ? this.AlternativeMatchDay.ToString() : this.PrimaryMatchDay.ToString())
-                        );
+                        ((useAlternativeMatchday) ? _applicationSettings.Settings.AlternativeMatchday.ToString() : _applicationSettings.Settings.PrimaryMatchDay.ToString())
+                    );
                 }
 
                 //Adds one day to the current date to advance the loop
