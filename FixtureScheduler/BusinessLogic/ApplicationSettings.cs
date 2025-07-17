@@ -15,22 +15,12 @@ namespace BusinessLogic
             //Teams received via dependency injection
             _teams = teams;
 
-            try
-            {
-                //Attempt to load the settings from the Settings.json file
-                //They will also be checked to see if they are valid
-                Settings = LoadSettings();
+            //Attempt to load the settings from the Settings.json file
+            //They will also be checked to see if they are valid
+            Settings = LoadSettings();
 
-                //The number of rounds needed is calculated using the teams
-                Settings.NumberOfRoundsNeeded = (_teams.Count() - 1) * 2;
-            }
-            catch (FixtureSchedulerException ex)
-            {
-                //Either the Settings.json file wasn't found or it failed validation
-                //Exit the program at this point as the settings are required to continue
-                Console.WriteLine(ex.Message);
-                Environment.Exit(1);
-            }
+            //The number of rounds needed is calculated using the teams
+            Settings.NumberOfRoundsNeeded = (_teams.Count() - 1) * 2;
         }
 
         /// <summary>

@@ -27,27 +27,31 @@ var serviceProvider = new ServiceCollection()
     .AddSingleton<Interfaces.IDates, BusinessLogic.Dates>()
     .BuildServiceProvider();
 
-//Creates an instance of dates
-var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
+try
+{
+    //Resolve IApplicationSettings now — this will run the constructor and load settings
+    var applicationSettings = serviceProvider.GetRequiredService<Interfaces.IApplicationSettings>();
 
-var availableDates = dates.GetAvailableDates().OrderBy(x => x.Date);
+    //Creates an instance of dates
+    var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
 
-//Counts the number of primary matchdays
-//var numberOfPrimaryMatchdays = dates.CountMatchdays(useAlternativeMatchday: false);
+    //Gets the available
+    var availableDates = dates.GetAvailableDates().OrderBy(x => x.Date);
 
-//if (numberOfPrimaryMatchdays < numberOfRoundsNeeded)
-//{
-//    Console.WriteLine("Not enough primary matchdays");
-//}
+    //Counts the number of saturdays between the two dates
+    int count = dates.CountMatchdays(useAlternativeMatchday: false);
 
-//Counts the number of saturdays between the two dates
-int count = dates.CountMatchdays(useAlternativeMatchday: false);
+    //This will get removed at some point
+    Console.WriteLine("Hello, World!");
+    Console.WriteLine(count.ToString());
 
-//This will get removed at some point
-Console.WriteLine("Hello, World!");
-Console.WriteLine(count.ToString());
+    var y = Console.ReadLine();
 
-var y = Console.ReadLine();
-
-Console.WriteLine(y);
-Console.Read();
+    Console.WriteLine(y);
+    Console.Read();
+}
+catch (FixtureSchedulerException ex)
+{
+    Console.WriteLine(ex.Message);
+    Environment.Exit(1);
+}
