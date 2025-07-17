@@ -1,24 +1,28 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using BusinessLogic;
+using Microsoft.Extensions.DependencyInjection;
 
-//Loads the settings
-var settings = BusinessLogic.ApplicationSettings.LoadSettings();
+List<Models.Teams> teams;
 
-if (settings == null)
+try
 {
+    //Loads the teams from the teams json files
+    teams = BusinessLogic.Teams.LoadTeams();
+}
+catch (FixtureSchedulerException ex)
+{
+    //Exits if the 
+    Console.WriteLine(ex.Message);
+    Environment.Exit(1);
+
+    //This return will never be reached but seems to be required to keep the compiler happy :)
     return;
 }
 
-//Defines the number of teams
-var totalNumberOfTeams = 24;
-
-//Sets the number of rounds needed to play all the games
-//This is (Number of Teams x 2 - 2)
-var numberOfRoundsNeeded = (totalNumberOfTeams - 1) * 2;
-
 //Sets up the dependency injection and registers interfaces and their implementation classes
-//Also passes in the settings created earlier so these can be used elsewhere in the application
+//Also passes in the teams created earlier so these can be used elsewhere in the application
 var serviceProvider = new ServiceCollection()
-    .AddSingleton(settings)
+    .AddSingleton(teams)
+    .AddSingleton<Interfaces.IApplicationSettings, BusinessLogic.ApplicationSettings>()
     .AddSingleton<Interfaces.IBankHolidays, BusinessLogic.BankHolidays>()
     .AddSingleton<Interfaces.IDates, BusinessLogic.Dates>()
     .BuildServiceProvider();
@@ -29,12 +33,12 @@ var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
 var availableDates = dates.GetAvailableDates().OrderBy(x => x.Date);
 
 //Counts the number of primary matchdays
-var numberOfPrimaryMatchdays = dates.CountMatchdays(useAlternativeMatchday: false);
+//var numberOfPrimaryMatchdays = dates.CountMatchdays(useAlternativeMatchday: false);
 
-if (numberOfPrimaryMatchdays < numberOfRoundsNeeded)
-{
-    Console.WriteLine("Not enough primary matchdays");
-}
+//if (numberOfPrimaryMatchdays < numberOfRoundsNeeded)
+//{
+//    Console.WriteLine("Not enough primary matchdays");
+//}
 
 //Counts the number of saturdays between the two dates
 int count = dates.CountMatchdays(useAlternativeMatchday: false);
