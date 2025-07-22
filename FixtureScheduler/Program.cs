@@ -1,27 +1,10 @@
 ﻿using BusinessLogic;
 using Microsoft.Extensions.DependencyInjection;
+using Spectre.Console;
 
-List<Models.Teams> teams;
-
-try
-{
-    //Loads the teams from the teams json files
-    teams = BusinessLogic.Teams.LoadTeams();
-}
-catch (FixtureSchedulerException ex)
-{
-    //Exits if the 
-    Console.WriteLine(ex.Message);
-    Environment.Exit(1);
-
-    //This return will never be reached but seems to be required to keep the compiler happy :)
-    return;
-}
-
-//Sets up the dependency injection and registers interfaces and their implementation classes
-//Also passes in the teams created earlier so these can be used elsewhere in the application
+// Sets up the dependency injection and registers interfaces and their implementation classes
 var serviceProvider = new ServiceCollection()
-    .AddSingleton(teams)
+    .AddSingleton<Interfaces.ITeams, BusinessLogic.Teams>()
     .AddSingleton<Interfaces.IApplicationSettings, BusinessLogic.ApplicationSettings>()
     .AddSingleton<Interfaces.IBankHolidays, BusinessLogic.BankHolidays>()
     .AddSingleton<Interfaces.IDates, BusinessLogic.Dates>()
@@ -29,26 +12,35 @@ var serviceProvider = new ServiceCollection()
 
 try
 {
-    //Resolve IApplicationSettings now — this will run the constructor and load settings
+    // Resolve IApplicationSettings and teams
     var applicationSettings = serviceProvider.GetRequiredService<Interfaces.IApplicationSettings>();
+    var teams = serviceProvider.GetRequiredService<Interfaces.ITeams>();
+
+    // Display the teams in a table
+    teams.ShowTeams();
+
+    // Ask the user to confirm
+    var confirmation = AnsiConsole.Prompt(
+        new TextPrompt<bool>("Run prompt example?")
+            .AddChoice(true)
+            .AddChoice(false)
+            .DefaultValue(true)
+            .WithConverter(choice => choice ? "y" : "n"));
+
+    //AnsiConsole.WriteLine(confirmation ? "Confirmed" : "Declined");
+
+
+
+    // Display the settings in a table
+    applicationSettings.ShowSettings();
+
+    Console.WriteLine(applicationSettings.Settings.PrimaryMatchDay);
 
     //Creates an instance of dates
     var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
 
-    //Gets the available
-    var availableDates = dates.GetAvailableDates().OrderBy(x => x.Date);
+    dates.PrintDates();
 
-    //Counts the number of saturdays between the two dates
-    int count = dates.CountMatchdays(useAlternativeMatchday: false);
-
-    //This will get removed at some point
-    Console.WriteLine("Hello, World!");
-    Console.WriteLine(count.ToString());
-
-    var y = Console.ReadLine();
-
-    Console.WriteLine(y);
-    Console.Read();
 }
 catch (FixtureSchedulerException ex)
 {

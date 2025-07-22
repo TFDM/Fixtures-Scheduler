@@ -7,7 +7,8 @@ namespace BusinessLogic
         private readonly Interfaces.IApplicationSettings _applicationSettings;
         private readonly Interfaces.IBankHolidays _bankHolidays;
         private List<Models.BankHolidayEvent>? BankHolidays { get; set; }
-
+        public List<Models.AvailableDates> AvailableDates { get; private set; }
+        
         public Dates(Interfaces.IApplicationSettings applicationSettings, Interfaces.IBankHolidays bankHolidays)
         {
             //Application settings instance is passed in via dependency injection
@@ -19,13 +20,16 @@ namespace BusinessLogic
             //Gets bank holidays between the supplied dates
             this.BankHolidays = _bankHolidays.GetBankHolidays(_applicationSettings.Settings.StartDate,
                 _applicationSettings.Settings.EndDate);
+
+            //Gets the available dates
+            this.AvailableDates = GetAvailableDates();
         }
 
         /// <summary>
         /// Generates a list of available dates
         /// </summary>
         /// <returns></returns>
-        public List<Models.AvailableDates> GetAvailableDates()
+        private List<Models.AvailableDates> GetAvailableDates()
         {
             //Creates a new list of available dates
             var availableDates = new List<Models.AvailableDates>();
@@ -75,6 +79,8 @@ namespace BusinessLogic
             {
                 foreach (var bankHoliday in this.BankHolidays)
                 {
+                    //Skips over the current bank holiday in the loop if its one of excluded dates in the application
+                    //Otheriwse check to make sure the bank holiday
                     if (!_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == bankHoliday.Date))
                     {
                         //Checks to make sure that there isn't already a date in the list
@@ -93,6 +99,14 @@ namespace BusinessLogic
             }
 
             return listOfAvailableDates;
+        }
+
+        public void PrintDates()
+        {
+            foreach (var availableDate in this.AvailableDates.OrderBy(x => x.Date))
+            {
+                Console.WriteLine(availableDate.Date.ToString("dd/MM/yyyy") + "is a " + availableDate.Date.DayOfWeek.ToString());
+            }
         }
 
         /// <summary>
