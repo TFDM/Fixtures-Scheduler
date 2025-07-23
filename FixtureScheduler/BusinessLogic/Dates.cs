@@ -7,7 +7,8 @@ namespace BusinessLogic
         private readonly Interfaces.IApplicationSettings _applicationSettings;
         private readonly Interfaces.IBankHolidays _bankHolidays;
         private List<Models.BankHolidayEvent>? BankHolidays { get; set; }
-
+        public List<Models.AvailableDates> AvailableDates { get; private set; } = new List<Models.AvailableDates>();
+        
         public Dates(Interfaces.IApplicationSettings applicationSettings, Interfaces.IBankHolidays bankHolidays)
         {
             //Application settings instance is passed in via dependency injection
@@ -19,20 +20,17 @@ namespace BusinessLogic
             //Gets bank holidays between the supplied dates
             this.BankHolidays = _bankHolidays.GetBankHolidays(_applicationSettings.Settings.StartDate,
                 _applicationSettings.Settings.EndDate);
+
+            //Gets the available dates for the primary matchday
+            GetPrimaryMatchDaysDates();
         }
 
         /// <summary>
-        /// Generates a list of available dates
+        /// Generates a list of available primary match days, taking into 
+        /// account any excluded dates from the settings 
         /// </summary>
-        /// <returns></returns>
-        public List<Models.AvailableDates> GetAvailableDates()
+        private void GetPrimaryMatchDaysDates()
         {
-            //Creates a new list of available dates
-            var availableDates = new List<Models.AvailableDates>();
-
-            //Adds the bank holiday dates - takes into account any excluded dates as well
-            availableDates = AddBankHolidayDates(availableDates);
-
             //Sets the current date variable to the start date
             var currentDate = _applicationSettings.Settings.StartDate;
             
@@ -45,11 +43,11 @@ namespace BusinessLogic
                 {
                     //Checks to make sure that there isn't already a date in the list
                     //which is within 1 day in either direction
-                    if (!availableDates.Any(x => x.Date == currentDate.AddDays(-1)) &&
-                        !availableDates.Any(x => x.Date == currentDate.AddDays(1)))
+                    if (!this.AvailableDates.Any(x => x.Date == currentDate.AddDays(-1)) &&
+                        !this.AvailableDates.Any(x => x.Date == currentDate.AddDays(1)))
                     {
                         //Add the current date to the list of available dates
-                        availableDates.Add(new Models.AvailableDates
+                        this.AvailableDates.Add(new Models.AvailableDates
                         {
                             Date = currentDate,
                             IsPrimaryMatchday = (currentDate.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
@@ -60,29 +58,28 @@ namespace BusinessLogic
                 //Add a day to the current date
                 currentDate = currentDate.AddDays(1);
             }
-
-            return availableDates;
         }
 
         /// <summary>
-        /// Adds bank holidays to a list of available dates
+        /// Adds the bank holidays, taking into account 
+        /// any excluded dates from the settings
         /// </summary>
-        /// <param name="listOfAvailableDates"></param>
-        /// <returns></returns>
-        private List<Models.AvailableDates> AddBankHolidayDates(List<Models.AvailableDates> listOfAvailableDates)
+        public void AddBankHolidayDates()
         {
             if (this.BankHolidays != null)
             {
                 foreach (var bankHoliday in this.BankHolidays)
                 {
+                    //Skips over the current bank holiday in the loop if its one of excluded dates in the application
+                    //Otheriwse check to make sure the bank holiday
                     if (!_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == bankHoliday.Date))
                     {
                         //Checks to make sure that there isn't already a date in the list
                         //which is within 1 day in either direction
-                        if (!listOfAvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(-1)) &&
-                            !listOfAvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(1)))
+                        if (!this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(-1)) &&
+                            !this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(1)))
                         {
-                            listOfAvailableDates.Add(new Models.AvailableDates
+                            this.AvailableDates.Add(new Models.AvailableDates
                             {
                                 Date = bankHoliday.Date,
                                 IsPrimaryMatchday = (bankHoliday.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
@@ -91,8 +88,39 @@ namespace BusinessLogic
                     }
                 }
             }
+        }
 
-            return listOfAvailableDates;
+        /// <summary>
+        /// Prints out the available dates - can be used for debugging
+        /// </summary>
+        public void PrintDates()
+        {
+            Console.WriteLine(this.AvailableDates.Count());
+
+            foreach (var availableDate in this.AvailableDates.OrderBy(x => x.Date))
+            {
+                Console.WriteLine(availableDate.Date.ToString("dd/MM/yyyy") + " is a " + availableDate.Date.DayOfWeek.ToString());
+            }
+        }
+
+        /// <summary>
+        /// Returns either true or false based on if more dates are are required
+        /// compared to the number of rounds required
+        /// </summary>
+        /// <returns>bool</returns>
+        public bool MoreDatesRequired()
+        {
+            return (this.AvailableDates.Count() < _applicationSettings.Settings.NumberOfRoundsNeeded) ? true : false;
+        }
+
+        /// <summary>
+        /// Returns the total number of additional dates in order to fulfill
+        /// the number of rounds required
+        /// </summary>
+        /// <returns></returns>
+        public int TotalNumberOfAdditionalDatesRequired()
+        {
+            return _applicationSettings.Settings.NumberOfRoundsNeeded - this.AvailableDates.Count();
         }
 
         /// <summary>
