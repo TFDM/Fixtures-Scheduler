@@ -20,26 +20,46 @@ try
     teams.ShowTeams();
 
     // Ask the user to confirm
-    var confirmation = AnsiConsole.Prompt(
-        new TextPrompt<bool>("Run prompt example?")
-            .AddChoice(true)
-            .AddChoice(false)
-            .DefaultValue(true)
-            .WithConverter(choice => choice ? "y" : "n"));
+    //  var confirmation = AnsiConsole.Prompt(
+    //      new TextPrompt<bool>("Run prompt example?")
+    //          .AddChoice(true)
+    //          .AddChoice(false)
+    //          .DefaultValue(true)
+    //          .WithConverter(choice => choice ? "y" : "n"));
 
-    //AnsiConsole.WriteLine(confirmation ? "Confirmed" : "Declined");
-
-
+    // AnsiConsole.WriteLine(confirmation ? "Confirmed" : "Declined");
 
     // Display the settings in a table
     applicationSettings.ShowSettings();
 
-    Console.WriteLine(applicationSettings.Settings.PrimaryMatchDay);
-
-    //Creates an instance of dates
+    // Creates an instance of dates - this will generate a list of initial 
+    // dates for the primary matchday only
     var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
 
-    dates.PrintDates();
+    AnsiConsole.Write(new Markup($"Number of initial match days found: {dates.AvailableDates.Count()}"));
+    AnsiConsole.WriteLine();
+
+    // Checks if more dates are required
+    if (dates.MoreDatesRequired())
+    {
+        AnsiConsole.Write(new Markup($"Not enough days for the number of rounds required"));
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Markup($"{dates.TotalNumberOfAdditionalDatesRequired()} more dates are required"));
+    }
+
+    // Add the bank holidays
+    dates.AddBankHolidayDates();
+
+    AnsiConsole.Write(new Markup($"Number of match days found: {dates.AvailableDates.Count()}"));
+    AnsiConsole.WriteLine();
+
+    // Checks if more dates are required
+    if (dates.MoreDatesRequired())
+    {
+        AnsiConsole.Write(new Markup($"Not enough days for the number of rounds required"));
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Markup($"{dates.TotalNumberOfAdditionalDatesRequired()} more dates are required"));
+    }
 
 }
 catch (FixtureSchedulerException ex)

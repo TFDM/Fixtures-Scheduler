@@ -97,7 +97,8 @@ namespace BusinessLogic
         public void ShowTeams()
         {
             AnsiConsole.WriteLine("Teams loaded from Teams.json file");
-
+            AnsiConsole.WriteLine();
+            
             // Create a table
             var table = new Table();
             table.Border = TableBorder.Horizontal;

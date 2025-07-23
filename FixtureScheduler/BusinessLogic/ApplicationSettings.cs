@@ -111,6 +111,7 @@ namespace BusinessLogic
         public void ShowSettings()
         {
             AnsiConsole.WriteLine("Settings loaded from Settings.json file");
+            AnsiConsole.WriteLine();
 
             // Check if the settings have any excluded dates
             var excludedDatesAsString = this.Settings.ExcludedDates.Any()
