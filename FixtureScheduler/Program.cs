@@ -21,13 +21,13 @@ try
 
     // Ask the user to confirm
     //  var confirmation = AnsiConsole.Prompt(
-    //      new TextPrompt<bool>("Run prompt example?")
+    //      new TextPrompt<bool>("Are the teams correct?")
     //          .AddChoice(true)
     //          .AddChoice(false)
     //          .DefaultValue(true)
     //          .WithConverter(choice => choice ? "y" : "n"));
 
-    // AnsiConsole.WriteLine(confirmation ? "Confirmed" : "Declined");
+    // AnsiConsole.MarkupLine(confirmation ? "[green]Yes[/]" : "[red]No[/]");
 
     // Display the settings in a table
     applicationSettings.ShowSettings();
@@ -42,13 +42,26 @@ try
     // Checks if more dates are required
     if (dates.MoreDatesRequired())
     {
-        AnsiConsole.Write(new Markup($"Not enough days for the number of rounds required"));
+        AnsiConsole.Write(new Markup($"[red]Not enough days for the number of rounds required[/]"));
         AnsiConsole.WriteLine();
         AnsiConsole.Write(new Markup($"{dates.TotalNumberOfAdditionalDatesRequired()} more dates are required"));
-    }
+        AnsiConsole.WriteLine();
 
-    // Add the bank holidays
-    dates.AddBankHolidayDates();
+        // Ask the user if they would like to add bank holidays confirm
+        var confirmation = AnsiConsole.Prompt(
+            new TextPrompt<bool>("Would you like to add bank holidays to the list of available dates?")
+                .AddChoice(true)
+                .AddChoice(false)
+                .DefaultValue(true)
+                .WithConverter(choice => choice ? "y" : "n"));
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Markup (confirmation ? "[green]Adding bank holidays...[/]" : "[red]No bank holidays added[/]"));
+        AnsiConsole.WriteLine();
+
+        // Add the bank holidays
+        dates.AddBankHolidayDates();
+    }
 
     AnsiConsole.Write(new Markup($"Number of match days found: {dates.AvailableDates.Count()}"));
     AnsiConsole.WriteLine();
@@ -56,7 +69,8 @@ try
     // Checks if more dates are required
     if (dates.MoreDatesRequired())
     {
-        AnsiConsole.Write(new Markup($"Not enough days for the number of rounds required"));
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Markup($"[red]Not enough days for the number of rounds required[/]"));
         AnsiConsole.WriteLine();
         AnsiConsole.Write(new Markup($"{dates.TotalNumberOfAdditionalDatesRequired()} more dates are required"));
     }
