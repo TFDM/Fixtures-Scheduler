@@ -1,23 +1,30 @@
 using Models;
+using Spectre.Console;
 
 namespace BusinessLogic
 {
     public class Dates : Interfaces.IDates
     {
+        private readonly Interfaces.IUserInterface _userInterface;
         private readonly Interfaces.IApplicationSettings _applicationSettings;
         private readonly Interfaces.IBankHolidays _bankHolidays;
         private List<Models.BankHolidayEvent>? BankHolidays { get; set; }
         public List<Models.AvailableDates> AvailableDates { get; private set; } = new List<Models.AvailableDates>();
         
-        public Dates(Interfaces.IApplicationSettings applicationSettings, Interfaces.IBankHolidays bankHolidays)
+        public Dates(Interfaces.IApplicationSettings applicationSettings,
+            Interfaces.IBankHolidays bankHolidays,
+            Interfaces.IUserInterface userInterface)
         {
-            //Application settings instance is passed in via dependency injection
+            // User interfaces is pass in via dependency injection
+            _userInterface = userInterface;
+
+            // Application settings instance is passed in via dependency injection
             _applicationSettings = applicationSettings;
 
-            //Bank holidays instance is passed in via dependency injection
+            // Bank holidays instance is passed in via dependency injection
             _bankHolidays = bankHolidays;
 
-            //Gets bank holidays between the supplied dates
+            // Gets bank holidays between the supplied dates
             this.BankHolidays = _bankHolidays.GetBankHolidays(_applicationSettings.Settings.StartDate,
                 _applicationSettings.Settings.EndDate);
 
@@ -61,11 +68,26 @@ namespace BusinessLogic
         }
 
         /// <summary>
-        /// Adds the bank holidays, taking into account 
+        /// Allows the user to add bank holidays, taking into account 
         /// any excluded dates from the settings
         /// </summary>
         public void AddBankHolidayDates()
         {
+            // Shows a message to the user to explain the bank holidays showen are
+            // betwen the start date and end date set in the Settings.json file
+            _userInterface.ShowMarkUpMessage(
+                message: new Markup($"Showing bank holidays between " +
+                    $"{_applicationSettings.Settings.StartDate:dd/MM/yyyy} and " +
+                    $"{_applicationSettings.Settings.EndDate:dd/MM/yyyy}"),
+                addWriteLine: true);
+
+            // Asks the user to select bank holidays
+            List <BankHolidayEvent> selectedBankHolidays = _userInterface.AskMultiSelection(
+                "Please select from the bank holidays shown below:",
+                this.BankHolidays!);
+
+            
+
             if (this.BankHolidays != null)
             {
                 foreach (var bankHoliday in this.BankHolidays)

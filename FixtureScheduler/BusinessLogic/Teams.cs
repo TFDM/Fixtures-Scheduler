@@ -5,10 +5,14 @@ namespace BusinessLogic
 {
     public class Teams : Interfaces.ITeams
     {
+        private readonly Interfaces.IUserInterface _userInterface;
         public List<Models.Teams> ListOfTeams { get; private set; } = new List<Models.Teams>();
 
-        public Teams()
+        public Teams(Interfaces.IUserInterface userInterface)
         {
+            // User interface passed in by via dependency injection
+            _userInterface = userInterface;
+
             // Attempt to load the teams from the Teams.json file
             // They will be checked to ensure they are valid
             ListOfTeams = LoadTeams();
@@ -96,30 +100,25 @@ namespace BusinessLogic
         /// </summary>
         public void ShowTeams()
         {
-            AnsiConsole.WriteLine("Teams loaded from Teams.json file");
-            AnsiConsole.WriteLine();
-            
-            // Create a table
-            var table = new Table();
-            table.Border = TableBorder.Horizontal;
-
-            // Add the columns - Adding .LeftAligned afterwards ensures just the colum
-            // headers are centred and not the content
-            table.AddColumn(new TableColumn("#"));
-            table.AddColumn(new TableColumn("Team"));
-
+            // Creates a counter - this is used to create a column 
+            // with a number in or the table
             var count = 1;
+            var teams = new List<List<string>>();
 
-            // Loops over team team and adds a row for them into the table
+            // Loop over the teams and for each one create a new list of string
+            // This list is comprised of the count and the team name
             foreach (var team in this.ListOfTeams)
             {
-                table.AddRow($"{count}", $"{team.Name}");
+                teams.Add(new List<string> { $"{count}", $"{team.Name}" });
                 count++;
             }
 
-            // Render the table to the console
-            AnsiConsole.Write(table);
-            AnsiConsole.WriteLine();
+            // Create the table
+            _userInterface.ShowTable(
+                headers: new List<string>
+                    {"#", "Team"},
+                rows: teams
+            );
         }
     }
 }

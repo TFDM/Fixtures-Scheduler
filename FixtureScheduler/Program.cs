@@ -8,6 +8,7 @@ var serviceProvider = new ServiceCollection()
     .AddSingleton<Interfaces.IApplicationSettings, BusinessLogic.ApplicationSettings>()
     .AddSingleton<Interfaces.IBankHolidays, BusinessLogic.BankHolidays>()
     .AddSingleton<Interfaces.IDates, BusinessLogic.Dates>()
+    .AddSingleton<Interfaces.IUserInterface, BusinessLogic.UserInterface>()
     .BuildServiceProvider();
 
 try
@@ -18,6 +19,17 @@ try
 
     // Display the teams in a table
     teams.ShowTeams();
+    
+    // Display the settings in a table
+    applicationSettings.ShowSettings();
+
+    AnsiConsole.Clear();
+
+    // Creates an instance of dates - this will generate a list of initial 
+    // dates for the primary matchday only
+    var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
+
+    dates.AddBankHolidayDates();
 
     // Ask the user to confirm
     //  var confirmation = AnsiConsole.Prompt(
@@ -29,12 +41,9 @@ try
 
     // AnsiConsole.MarkupLine(confirmation ? "[green]Yes[/]" : "[red]No[/]");
 
-    // Display the settings in a table
-    applicationSettings.ShowSettings();
 
-    // Creates an instance of dates - this will generate a list of initial 
-    // dates for the primary matchday only
-    var dates = serviceProvider.GetRequiredService<Interfaces.IDates>();
+
+
 
     AnsiConsole.Write(new Markup($"Number of initial match days found: {dates.AvailableDates.Count()}"));
     AnsiConsole.WriteLine();

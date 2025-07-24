@@ -44,6 +44,16 @@ namespace Models
         // Helper property to check if it's a substitute day
         [JsonIgnore]
         public bool IsSubstituteDay => !string.IsNullOrEmpty(Notes) && Notes.Contains("Substitute day");
+
+        /// <summary>
+        /// This is required to allow spectre console to show a multi 
+        /// select prompt of bank holidays
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return $"{Date:dd/MM/yyyy} - {Title}";
+        }
     }
 
     public static class BankHolidayExtensions
