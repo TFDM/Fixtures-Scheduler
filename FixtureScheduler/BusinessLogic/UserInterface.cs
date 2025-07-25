@@ -26,7 +26,7 @@ namespace BusinessLogic
         public List<T> AskMultiSelection<T>(string prompt, List<T> options) where T : notnull
         {
             // Where T added to keep the compiler happy - T will never be null
-            // This 
+            // This will keep the compiler from screaming at you :-)
             return AnsiConsole.Prompt(
                 new MultiSelectionPrompt<T>()
                     .Title(prompt)

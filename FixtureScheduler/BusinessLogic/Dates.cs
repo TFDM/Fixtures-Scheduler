@@ -86,28 +86,47 @@ namespace BusinessLogic
                 "Please select from the bank holidays shown below:",
                 this.BankHolidays!);
 
-            
-
-            if (this.BankHolidays != null)
+            // Adds the bank holiday to the list of available days
+            foreach (var bankHoliday in selectedBankHolidays)
             {
-                foreach (var bankHoliday in this.BankHolidays)
+                // Skips over the current bank holiday in the loop if its one of excluded dates in the application
+                if (!_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == bankHoliday.Date))
                 {
-                    //Skips over the current bank holiday in the loop if its one of excluded dates in the application
-                    //Otheriwse check to make sure the bank holiday
-                    if (!_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == bankHoliday.Date))
+                    // Checks to make sure that there isn't already a date in the list
+                    // which is within 1 day in either direction
+                    if (!this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(-1)) &&
+                        !this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(1)))
                     {
-                        //Checks to make sure that there isn't already a date in the list
-                        //which is within 1 day in either direction
-                        if (!this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(-1)) &&
-                            !this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(1)))
+                        this.AvailableDates.Add(new Models.AvailableDates
                         {
-                            this.AvailableDates.Add(new Models.AvailableDates
-                            {
-                                Date = bankHoliday.Date,
-                                IsPrimaryMatchday = (bankHoliday.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
-                            });
-                        }
+                            Date = bankHoliday.Date,
+                            IsPrimaryMatchday = (bankHoliday.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
+                        });
+
+                        // Display a message to the user to say the bank holiday was added
+                        _userInterface.ShowMarkUpMessage(
+                            message: new Markup($"[green]{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) was added.[/]"),
+                            addWriteLine: true
+                        );
                     }
+                    else
+                    {
+                        // Display a message to the user to say the bank holiday wasn't added because it is
+                        // too close to an exisiting matchday
+                        _userInterface.ShowMarkUpMessage(
+                            message: new Markup($"[red]{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) not added as it is within 1 day of an exisiting date.[/]"),
+                            addWriteLine: true
+                        );
+                    }
+                }
+                else
+                {
+                    // Display a message to the user to say the bank holiday wasn't added 
+                    // because its an excluded date in the settings
+                    _userInterface.ShowMarkUpMessage(
+                        message: new Markup($"[red]{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) not added as it is an excluded day.[/]"),
+                        addWriteLine: true
+                    );
                 }
             }
         }
@@ -117,11 +136,17 @@ namespace BusinessLogic
         /// </summary>
         public void PrintDates()
         {
-            Console.WriteLine(this.AvailableDates.Count());
+            _userInterface.ShowMarkUpMessage(
+                message: new Markup($"{this.AvailableDates.Count()}"),
+                addWriteLine: true
+            );
 
             foreach (var availableDate in this.AvailableDates.OrderBy(x => x.Date))
             {
-                Console.WriteLine(availableDate.Date.ToString("dd/MM/yyyy") + " is a " + availableDate.Date.DayOfWeek.ToString());
+                _userInterface.ShowMarkUpMessage(
+                    message: new Markup($"{availableDate.Date:dd/MM/yyyy} is a {availableDate.Date.DayOfWeek}"),
+                    addWriteLine: true
+                );
             }
         }
 
