@@ -5,6 +5,14 @@ namespace BusinessLogic
     public class UserInterface : Interfaces.IUserInterface
     {
         /// <summary>
+        /// Clears the console
+        /// </summary>
+        public void ClearConsole()
+        {
+            AnsiConsole.Clear();
+        }
+
+        /// <summary>
         /// Shows a spectre console mark up message
         /// </summary>
         /// <param name="message"></param>
@@ -32,6 +40,15 @@ namespace BusinessLogic
                     .Title(prompt)
                     .Required()
                     .InstructionsText("Use the spacebar to select each option and then hit return when done")
+                    .AddChoices(options)
+            );
+        }
+
+        public T AskSelection<T>(string prompt, List<T> options) where T : notnull
+        {
+            return AnsiConsole.Prompt(
+                new SelectionPrompt<T>()
+                    .Title(prompt)
                     .AddChoices(options)
             );
         }
