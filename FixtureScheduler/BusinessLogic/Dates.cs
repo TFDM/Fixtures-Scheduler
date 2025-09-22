@@ -8,8 +8,9 @@ namespace BusinessLogic
         private readonly Interfaces.IApplicationSettings _applicationSettings;
         private readonly Interfaces.IBankHolidays _bankHolidays;
         public List<Models.BankHolidayEvent>? BankHolidays { get; private set; }
+        public List<Models.AvailableDates> AlternativeDates { get; private set; } = new List<Models.AvailableDates>();
         public List<Models.AvailableDates> AvailableDates { get; private set; } = new List<Models.AvailableDates>();
-        
+
         public Dates(Interfaces.IApplicationSettings applicationSettings,
             Interfaces.IBankHolidays bankHolidays)
         {
@@ -22,6 +23,9 @@ namespace BusinessLogic
             // Gets bank holidays between the supplied dates
             this.BankHolidays = _bankHolidays.GetBankHolidays(_applicationSettings.Settings.StartDate,
                 _applicationSettings.Settings.EndDate);
+
+            // Gets the alternative match dates
+            this.AlternativeDates = GetAlternativeDates();
         }
 
         /// <summary>
@@ -188,6 +192,31 @@ namespace BusinessLogic
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Creates a list of alternative matchdays between the dates in the application settings
+        /// </summary>
+        /// <returns></returns>
+        private List<Models.AvailableDates> GetAlternativeDates()
+        {
+            var alternativeDates = new List<AvailableDates>();
+
+            // Find the first matching alternative matchday on or after the startDate
+            int daysUntilMatchday = ((int)_applicationSettings.Settings.AlternativeMatchday - (int)_applicationSettings.Settings.StartDate.DayOfWeek + 7) % 7;
+            var firstMatchDate = _applicationSettings.Settings.StartDate.AddDays(daysUntilMatchday);
+
+            // Iterate by weeks instead of days
+            for (var date = firstMatchDate; date <= _applicationSettings.Settings.EndDate; date = date.AddDays(7))
+            {
+                alternativeDates.Add(new Models.AvailableDates
+                {
+                    Date = date,
+                    IsPrimaryMatchday = date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay
+                });
+            }
+
+            return alternativeDates.ToList();
         }
 
         /// <summary>

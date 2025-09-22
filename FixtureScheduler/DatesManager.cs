@@ -28,8 +28,9 @@ public class DatesManager : Interfaces.IDatesManager
         List<Models.MenuItem> mainMenuOptions = new List<Models.MenuItem>();
         mainMenuOptions.Add(new Models.MenuItem { Option = 1, Description = "Display Exisiting Available Dates" });
         mainMenuOptions.Add(new Models.MenuItem { Option = 2, Description = "Add Primary Match Days" });
-        mainMenuOptions.Add(new Models.MenuItem { Option = 3, Description = "Add Bank Holidays " });
-        mainMenuOptions.Add(new Models.MenuItem { Option = 4, Description = "Exit" });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 3, Description = "Add Alternative Match Days" });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 4, Description = "Add Bank Holidays " });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 5, Description = "Exit" });
 
         // Sets an exit variable so the dates manager menu will
         // continue to be displayed until the user picks the exit option
@@ -56,9 +57,12 @@ public class DatesManager : Interfaces.IDatesManager
                     AddPrimaryMatchDays();
                     break;
                 case 3:
-                    AddBankHolidays();
+                    AddAlternativeMatchDays();
                     break;
                 case 4:
+                    AddBankHolidays();
+                    break;
+                case 5:
                     // User picked the exit option
                     // Set the exit variable back to 
                     // true to break out of the while loop
@@ -89,7 +93,7 @@ public class DatesManager : Interfaces.IDatesManager
             table.Border = TableBorder.Horizontal;
             table.AddColumn("Date");
 
-            AnsiConsole.Live(table).Start(ctx => 
+            AnsiConsole.Live(table).Start(ctx =>
             {
                 foreach (var date in _dates.AvailableDates.OrderBy(d => d.Date))
                 {
@@ -99,7 +103,7 @@ public class DatesManager : Interfaces.IDatesManager
 
                     ctx.Refresh();
                     Thread.Sleep(500);
-                } 
+                }
             });
         }
         else
@@ -123,7 +127,6 @@ public class DatesManager : Interfaces.IDatesManager
         // Add the primary matchdays
         var results = _dates.AddPrimaryMatchDaysDates();
 
-
         // Creates a new table for the results
         var table = new Table();
         table.Border = TableBorder.Horizontal;
@@ -131,7 +134,7 @@ public class DatesManager : Interfaces.IDatesManager
         table.AddColumn("Action");
         table.AddColumn("Reason");
 
-        AnsiConsole.Live(table).Start(ctx => 
+        AnsiConsole.Live(table).Start(ctx =>
         {
             // Loops over each of the results and creates a table row
             foreach (var r in results)
@@ -144,7 +147,7 @@ public class DatesManager : Interfaces.IDatesManager
 
                 ctx.Refresh();
                 Thread.Sleep(500);
-            }     
+            }
         });
 
         AnsiConsole.Write(new Markup("Press any key to continue"));
@@ -186,7 +189,7 @@ public class DatesManager : Interfaces.IDatesManager
         table.AddColumn("Action");
         table.AddColumn("Reason");
 
-        AnsiConsole.Live(table).Start(ctx => 
+        AnsiConsole.Live(table).Start(ctx =>
         {
             // Loops over each of the results and creates a table row
             foreach (var r in results)
@@ -204,5 +207,34 @@ public class DatesManager : Interfaces.IDatesManager
 
         AnsiConsole.Write(new Markup("Press any key to continue"));
         Console.ReadKey();
+    }
+
+    /// <summary>
+    /// Adds alternative match days to the list of available dates
+    /// </summary>
+    private void AddAlternativeMatchDays()
+    {
+        // Shows a message to the user to explain the dates showen are
+        // betwen the start date and end date set in the Settings.json file
+        AnsiConsole.Write(new Markup(
+            $"Showing {_applicationSettings.Settings.AlternativeMatchday}'s between " +
+            $"{_applicationSettings.Settings.StartDate:dd/MM/yyyy} and " +
+            $"{_applicationSettings.Settings.EndDate:dd/MM/yyyy}"
+        ));
+
+        AnsiConsole.WriteLine();
+        AnsiConsole.WriteLine();
+
+        // Ask the user to select alternative match days
+        List<Models.AvailableDates> selectedDays = AnsiConsole.Prompt(
+            new MultiSelectionPrompt<Models.AvailableDates>()
+            .Title("Please select from the bank holidays shown below:")
+            .AddChoices(_dates.AlternativeDates!)
+        );
+
+        AnsiConsole.Clear();
+
+        // Add code to add the alternative match days to the list of available dates
+
     }
 }
