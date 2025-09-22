@@ -40,6 +40,13 @@ public class DatesManager : Interfaces.IDatesManager
         {
             AnsiConsole.Clear();
 
+            // Displays the title for the dates manager
+            Panel title = new Panel(new Markup("[bold yellow]Dates Manager[/]"));
+            AnsiConsole.Write(title);
+
+            // Shows the number of available dates
+            ShowNumberOfAvailableDates();
+
             // Ask the user to select a menu option
             Models.MenuItem selectedMenuOption = AnsiConsole.Prompt(
                 new SelectionPrompt<Models.MenuItem>()
@@ -73,16 +80,41 @@ public class DatesManager : Interfaces.IDatesManager
     }
 
     /// <summary>
+    /// Shows the number of available dates and a message if more dates are required
+    /// </summary>
+    private void ShowNumberOfAvailableDates()
+    {
+        int count = _dates.AvailableDates.Count();
+
+        // Displays the number of available dates
+        AnsiConsole.Write(
+            new Markup($"Number of available dates: {(count > 0 ? $"[green]{count}[/]" : $"[red]{count}[/]")}")
+        );
+
+        // Displays a message if more dates are required or if there are sufficient dates
+        AnsiConsole.Write(
+            new Markup(_dates.MoreDatesRequired() ?
+                " [red](Not enough dates for the number of rounds required)[/]" :
+                " [green](Sufficient dates for the number of rounds required)[/]")
+        );
+
+
+        AnsiConsole.WriteLine($"\nNumber of additional dates required: {_dates.TotalNumberOfAdditionalDatesRequired()}");
+
+        AnsiConsole.WriteLine();
+    }
+
+    /// <summary>
     /// Shows the available dates that have been added
     /// </summary>
     private void ShowAvailableDates()
     {
+        AnsiConsole.Clear();
+        
         int count = _dates.AvailableDates.Count();
 
-        AnsiConsole.Write(
-            new Markup($"Number of available dates: {(count > 0 ? $"[green]{count}[/]" : $"[red]{count}[/]")}")
-        );
-        AnsiConsole.WriteLine();
+        // Shows the number of available dates
+        ShowNumberOfAvailableDates();
 
         if (_dates.AvailableDates.Count() > 0)
         {
@@ -228,7 +260,7 @@ public class DatesManager : Interfaces.IDatesManager
         // Ask the user to select alternative match days
         List<Models.AvailableDates> selectedDays = AnsiConsole.Prompt(
             new MultiSelectionPrompt<Models.AvailableDates>()
-            .Title("Please select from the bank holidays shown below:")
+            .Title("Please select from the alternative match days shown below:")
             .AddChoices(_dates.AlternativeDates!)
         );
 
