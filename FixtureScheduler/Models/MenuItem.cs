@@ -1,9 +1,9 @@
 namespace Models
 {
-    public class AvailableDates
+    public class MenuItem
     {
-        public DateTime Date { get; set; }
-        public bool IsPrimaryMatchday { get; set; }
+        public int Option { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         /// <summary>
         /// This is required to allow spectre console to show a multi 
@@ -12,7 +12,7 @@ namespace Models
         /// <returns></returns>
         public override string ToString()
         {
-            return $"{Date:dd/MM/yyyy}";
+            return $"{Description}";
         }
     }
 }

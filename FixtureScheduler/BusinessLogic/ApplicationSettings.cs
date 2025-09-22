@@ -6,11 +6,15 @@ namespace BusinessLogic
 {
     public class ApplicationSettings : Interfaces.IApplicationSettings
     {
+        private readonly Interfaces.IUserInterface _userInterface;
         private readonly Interfaces.ITeams _teams;
         public Models.Settings Settings { get; private set; }
 
-        public ApplicationSettings(Interfaces.ITeams teams)
+        public ApplicationSettings(Interfaces.ITeams teams, Interfaces.IUserInterface userInterface)
         {
+            // User interface received via dependency injection
+            _userInterface = userInterface;
+
             // Teams received via dependency injection
             _teams = teams;
 
@@ -110,9 +114,6 @@ namespace BusinessLogic
         /// </summary>
         public void ShowSettings()
         {
-            AnsiConsole.WriteLine("Settings loaded from Settings.json file");
-            AnsiConsole.WriteLine();
-
             // Check if the settings have any excluded dates
             var excludedDatesAsString = this.Settings.ExcludedDates.Any()
                 // If they do, join all the dates together into a single string with a \n seperating each one
@@ -121,26 +122,22 @@ namespace BusinessLogic
                 // If there are no dates return this string
                 : "No excluded dates";
 
-            // Create a table
-            var table = new Table();
-            table.Border = TableBorder.Horizontal;
+            // Creates a new list of list string for the rows
+            var rows = new List<List<string>>();
 
-            // Add the columns - Adding .LeftAligned afterwards ensures just the colum
-            // headers are centred and not the content
-            table.AddColumn(new TableColumn("Setting"));
-            table.AddColumn(new TableColumn("Value"));
+            // Creates the rows for the table
+            rows.Add(new List<string> { "Start Date", $"{this.Settings.StartDate:dd/MM/yyyy}" });
+            rows.Add(new List<string> { "End Date", $"{this.Settings.EndDate:dd/MM/yyyy}" });
+            rows.Add(new List<string> { "Excluded Dates", excludedDatesAsString });
+            rows.Add(new List<string> { "Primary Match Day", $"{this.Settings.PrimaryMatchDay}" });
+            rows.Add(new List<string> { "Alternative Match Day", $"{this.Settings.AlternativeMatchday}" });
+            rows.Add(new List<string> { "Number of Rounds Needed", $"{this.Settings.NumberOfRoundsNeeded}"});
 
-            // Add rows to show the settings
-            table.AddRow("Start Date", $"{this.Settings.StartDate:dd/MM/yyyy}");
-            table.AddRow("End Date", $"{this.Settings.EndDate:dd/MM/yyyy}");
-            table.AddRow(new Markup("Excluded Dates"), new Markup(excludedDatesAsString));
-            table.AddRow("Primary Match Day", $"{this.Settings.PrimaryMatchDay}");
-            table.AddRow("Alternative Match Day", $"{this.Settings.AlternativeMatchday}");
-            table.AddRow("Number of Rounds Needed", $"{this.Settings.NumberOfRoundsNeeded}");
-
-            // Render the table to the console
-            AnsiConsole.Write(table);
-            AnsiConsole.WriteLine();
+            // Create the table
+            _userInterface.ShowTable(
+                headers: new List<string> { "Setting", "Value" },
+                rows: rows
+            );
         }
     }
 }
