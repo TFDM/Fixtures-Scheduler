@@ -27,10 +27,11 @@ public class DatesManager : Interfaces.IDatesManager
         // Create a new list of menu items
         List<Models.MenuItem> mainMenuOptions = new List<Models.MenuItem>();
         mainMenuOptions.Add(new Models.MenuItem { Option = 1, Description = "Display Exisiting Available Dates" });
-        mainMenuOptions.Add(new Models.MenuItem { Option = 2, Description = "Add Primary Match Days" });
-        mainMenuOptions.Add(new Models.MenuItem { Option = 3, Description = "Add Alternative Match Days" });
-        mainMenuOptions.Add(new Models.MenuItem { Option = 4, Description = "Add Bank Holidays " });
-        mainMenuOptions.Add(new Models.MenuItem { Option = 5, Description = "Exit" });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 2, Description = "Add Primary Match Days in Bulk" });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 3, Description = "Add Selected Primary Match Days" });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 4, Description = "Add Selected Alternative Match Days" });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 5, Description = "Add Bank Holidays" });
+        mainMenuOptions.Add(new Models.MenuItem { Option = 6, Description = "Exit" });
 
         // Sets an exit variable so the dates manager menu will
         // continue to be displayed until the user picks the exit option
@@ -61,15 +62,18 @@ public class DatesManager : Interfaces.IDatesManager
                     ShowAvailableDates();
                     break;
                 case 2:
-                    AddPrimaryMatchDays();
+                    AddPrimaryMatchDays(inBulk: true);
                     break;
                 case 3:
-                    AddAlternativeMatchDays();
+                    AddPrimaryMatchDays();
                     break;
                 case 4:
-                    AddBankHolidays();
+                    AddAlternativeMatchDays();
                     break;
                 case 5:
+                    AddBankHolidays();
+                    break;
+                case 6:
                     // User picked the exit option
                     // Set the exit variable back to 
                     // true to break out of the while loop
@@ -124,13 +128,17 @@ public class DatesManager : Interfaces.IDatesManager
             var table = new Table();
             table.Border = TableBorder.Horizontal;
             table.AddColumn("Date");
+            table.AddColumn("Is Primary Matchday?");
+            table.AddColumn("Is Bank Holiday?");
 
             AnsiConsole.Live(table).Start(ctx =>
             {
                 foreach (var date in _dates.AvailableDates.OrderBy(d => d.Date))
                 {
                     table.AddRow(
-                        $"{date.Date:dd/MM/yyyy}"
+                        $"{date.Date:dd/MM/yyyy}", 
+                        (date.IsPrimaryMatchday) ? "[green]Yes[/]" : "[red]No[/]",
+                        (date.IsBankHoliday) ? "[green]Yes[/]" : "[red]No[/]"
                     );
 
                     ctx.Refresh();
@@ -154,10 +162,42 @@ public class DatesManager : Interfaces.IDatesManager
     /// <summary>
     /// Adds primary match days to the list of available dates
     /// </summary>
-    private void AddPrimaryMatchDays()
+    private void AddPrimaryMatchDays(bool inBulk = false)
     {
-        // Add the primary matchdays
-        var results = _dates.AddPrimaryMatchDaysDates();
+        List<Models.AvailableDateAddRemoveResult> results;
+
+        if (inBulk)
+        {
+            // Add the primary match days in bulk
+            results = _dates.AddAllPrimaryMatchDaysDates();
+        }
+        else
+        {
+            // Primary match days aren't being added in bulk. The user will need to select them
+
+            // Shows a message to the user to explain the dates showen are
+            // betwen the start date and end date set in the Settings.json file
+            AnsiConsole.Write(new Markup(
+                $"Showing {_applicationSettings.Settings.PrimaryMatchDay}'s between " +
+                $"{_applicationSettings.Settings.StartDate:dd/MM/yyyy} and " +
+                $"{_applicationSettings.Settings.EndDate:dd/MM/yyyy}"
+            ));
+
+            AnsiConsole.WriteLine();
+            AnsiConsole.WriteLine();
+
+            // Ask the user to select primary match days
+            List<Models.AvailableDates> selectedDays = AnsiConsole.Prompt(
+                new MultiSelectionPrompt<Models.AvailableDates>()
+                .Title("Please select from the primary match days shown below:")
+                .AddChoices(_dates.PrimaryDates!)
+            );
+
+            AnsiConsole.Clear();
+
+            // Add the selected dates
+            results = _dates.AddSelectedDates(selectedDays);
+        }
 
         // Creates a new table for the results
         var table = new Table();
@@ -266,7 +306,34 @@ public class DatesManager : Interfaces.IDatesManager
 
         AnsiConsole.Clear();
 
-        // Add code to add the alternative match days to the list of available dates
+        // Add the selected dates
+        var results = _dates.AddSelectedDates(selectedDays);
+
+        // Creates a new table for the results
+        var table = new Table();
+        table.Border = TableBorder.Horizontal;
+        table.AddColumn("Date");
+        table.AddColumn("Action");
+        table.AddColumn("Reason");
+
+        AnsiConsole.Live(table).Start(ctx =>
+        {
+            // Loops over each of the results and creates a table row
+            foreach (var r in results)
+            {
+                table.AddRow(
+                    $"{r.Date:dd/MM/yyyy}",
+                    (r.Action == "Skipped") ? $"[red]{r.Action}[/]" : $"[green]{r.Action}[/]",
+                    $"{r.Reason}"
+                );
+
+                ctx.Refresh();
+                Thread.Sleep(500);
+            }
+        });
+
+        AnsiConsole.Write(new Markup("Press any key to continue"));
+        Console.ReadKey();
 
     }
 }

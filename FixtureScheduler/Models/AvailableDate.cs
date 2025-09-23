@@ -4,6 +4,8 @@ namespace Models
     {
         public DateTime Date { get; set; }
         public bool IsPrimaryMatchday { get; set; }
+        public bool IsBankHoliday { get; set; }
+        public string? Description { get; set; }
 
         /// <summary>
         /// This is required to allow spectre console to show a multi 

@@ -8,6 +8,7 @@ namespace BusinessLogic
         private readonly Interfaces.IApplicationSettings _applicationSettings;
         private readonly Interfaces.IBankHolidays _bankHolidays;
         public List<Models.BankHolidayEvent>? BankHolidays { get; private set; }
+        public List<Models.AvailableDates> PrimaryDates { get; private set; } = new List<Models.AvailableDates>();
         public List<Models.AvailableDates> AlternativeDates { get; private set; } = new List<Models.AvailableDates>();
         public List<Models.AvailableDates> AvailableDates { get; private set; } = new List<Models.AvailableDates>();
 
@@ -24,16 +25,138 @@ namespace BusinessLogic
             this.BankHolidays = _bankHolidays.GetBankHolidays(_applicationSettings.Settings.StartDate,
                 _applicationSettings.Settings.EndDate);
 
+            // Gets the primary match dates
+            this.PrimaryDates = GetPrimaryDates();
+
             // Gets the alternative match dates
             this.AlternativeDates = GetAlternativeDates();
         }
 
         /// <summary>
-        /// Adds primary match days to the list of available dates using the settings.
-        /// Takes into account any excluded dates
+        /// Validates the date to see if its already been used, is an excluded date 
+        /// or is too close to an exisiting date. Returns either a reason or null
+        /// </summary>
+        /// <param name="d"></param>
+        /// <returns></returns>
+        private string? ValidateDate(DateTime d)
+        {
+            if (IsDateAlreadyUsed(d))
+                return $"has already been added";
+
+            if (IsDateExcludedDate(d))
+                return $"is an excluded date";
+
+            if (IsTooCloseToExisitingDate(d))
+                return $"is too close to an exisiting date";
+
+            return null; // no problems
+        }
+
+        /// <summary>
+        /// Checks if a date is already in the list of available dates
+        /// </summary>
+        /// <param name="d"></param>
+        /// <returns></returns>
+        private bool IsDateAlreadyUsed(DateTime d)
+        {
+            // If the date is already in the available dates then it can't be added
+            if (this.AvailableDates.Any(x => x.Date == d.Date))
+                return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if a date matches any of the excluded dates in the settings
+        /// </summary>
+        /// <param name="d"></param>
+        /// <returns></returns>
+        private bool IsDateExcludedDate(DateTime d)
+        {
+            // If the date matches any of the excluded dates then it can't be added
+            if (_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == d.Date))
+                return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if a date is too close to a date already in the list of available dates
+        /// </summary>
+        /// <param name="d"></param>
+        /// <returns></returns>
+        private bool IsTooCloseToExisitingDate(DateTime d)
+        {
+            // If the date is within 1 day of an exisiting avaiable date then it can't be added
+            if (this.AvailableDates.Any(x => x.Date == d.Date.AddDays(-1)) ||
+                    this.AvailableDates.Any(x => x.Date == d.Date.AddDays(1)))
+                return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Creates an AvailableDateAddRemoveResult
+        /// </summary>
+        /// <param name="date"></param>
+        /// <param name="action"></param>
+        /// <param name="reason"></param>
+        /// <returns></returns>
+        private AvailableDateAddRemoveResult CreateResult(DateTime date, string action, string reason)
+        {
+            return new AvailableDateAddRemoveResult
+            {
+                Date = date,
+                Action = action,
+                Reason = reason
+            };
+        }
+
+        /// <summary>
+        /// Adds selected dates taking into account excluded dates etc
+        /// </summary>
+        /// <param name="datesToBeAdded"></param>
+        /// <returns></returns>
+        public List<Models.AvailableDateAddRemoveResult> AddSelectedDates(List<Models.AvailableDates> datesToBeAdded)
+        {
+            // Creates a list of results to keep track of the added / skipped dates
+            List<Models.AvailableDateAddRemoveResult> results = new List<Models.AvailableDateAddRemoveResult>();
+
+            foreach (var d in datesToBeAdded)
+            {
+                // Check if the date is okay to be added to the list
+                var reason = ValidateDate(d.Date);
+
+                // Check if there was reason not to add it
+                if (reason != null)
+                {
+                    // The date couldn't be added to the list of available dates
+                    // Add the reason to the results and continue to the next date
+                    results.Add(CreateResult(d.Date, "Skipped", $"{d.Date:dd/MM/yyyy} {reason}"));
+                    continue;
+                }
+
+                // Validation passed and the date can be added to the list of available dates
+                this.AvailableDates.Add(new Models.AvailableDates
+                {
+                    Date = d.Date,
+                    IsPrimaryMatchday = (d.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false,
+                    IsBankHoliday = false,
+                    Description = null
+                });
+
+                // Add the date being added to the results
+                results.Add(CreateResult(d.Date, "Added", $"{d.Date:dd/MM/yyyy} was added"));
+            }
+
+            return results;
+        }
+
+        /// <summary>
+        /// Tries to add all primary match days to the list of available dates using the settings.
+        /// Takes into account any excluded dates, dates already in the list of available dates etc
         /// </summary>
         /// <returns></returns>
-        public List<Models.AvailableDateAddRemoveResult> AddPrimaryMatchDaysDates()
+        public List<Models.AvailableDateAddRemoveResult> AddAllPrimaryMatchDaysDates()
         {
             // Creates a list of results keep track of the added / skipped dates
             List<Models.AvailableDateAddRemoveResult> results = new List<Models.AvailableDateAddRemoveResult>();
@@ -52,67 +175,32 @@ namespace BusinessLogic
                     continue;
                 }
 
-                // If the current date matches any of the excluded dates then skip it
-                if (_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == currentDate))
+                // Check if the date is okay to be added to the list
+                var reason = ValidateDate(currentDate);
+
+                // Check if there was reason not to add it
+                if (reason != null)
                 {
-                    results.Add(new AvailableDateAddRemoveResult
-                    {
-                        Date = currentDate,
-                        Action = "Skipped",
-                        Reason = "Date matches an excluded date"
-                    });
+                    // The date couldn't be added to the list of available dates
+                    // Add the reason to the results and continue to the next date
+                    results.Add(CreateResult(currentDate, "Skipped", $"{currentDate.Date:dd/MM/yyyy} {reason}"));
 
                     // Add a day to the current date
                     currentDate = currentDate.AddDays(1);
                     continue;
                 }
 
-                // If the current date is within 1 day of an exisiting avaiable date then skip it
-                if (this.AvailableDates.Any(x => x.Date == currentDate.AddDays(-1)) ||
-                    this.AvailableDates.Any(x => x.Date == currentDate.AddDays(1)))
-                {
-                    results.Add(new AvailableDateAddRemoveResult
-                    {
-                        Date = currentDate,
-                        Action = "Skipped",
-                        Reason = "Date is too close to an exisiting matchday"
-                    });
-
-                    // Add a day to the current date
-                    currentDate = currentDate.AddDays(1);
-                    continue;
-                }
-
-                // If the current date matches any of the exisiting available dates then skip it
-                if (this.AvailableDates.Any(x => x.Date == currentDate))
-                {
-                    results.Add(new AvailableDateAddRemoveResult
-                    {
-                        Date = currentDate,
-                        Action = "Skipped",
-                        Reason = "Date is in already in the available dates."
-                    });
-
-                    // Add a day to the current date
-                    currentDate = currentDate.AddDays(1);
-                    continue;
-                }
-
-                // None of the previous conditions have been met - add the current date
-                // to the list of available dates
+                // Validation passed and the date can be added to the list of available dates
                 this.AvailableDates.Add(new Models.AvailableDates
                 {
-                    Date = currentDate,
-                    IsPrimaryMatchday = (currentDate.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
+                    Date = currentDate.Date,
+                    IsPrimaryMatchday = (currentDate.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false,
+                    IsBankHoliday = false,
+                    Description = null
                 });
 
-                // Add the current date to the list of added dates
-                results.Add(new AvailableDateAddRemoveResult
-                {
-                    Date = currentDate,
-                    Action = "Added",
-                    Reason = "Date added"
-                });
+                // Add the date being added to the results
+                results.Add(CreateResult(currentDate.Date, "Added", $"{currentDate.Date:dd/MM/yyyy} was added"));
 
                 //Add a day to the current date
                 currentDate = currentDate.AddDays(1);
@@ -123,75 +211,65 @@ namespace BusinessLogic
         }
 
         /// <summary>
-        /// Allows the user to add bank holidays, taking into account 
+        /// Allows the user to add selected bank holidays, taking into account 
         /// any excluded dates from the settings
         /// </summary>
-        public List<Models.AvailableDateAddRemoveResult> AddBankHolidayDates(List<Models.BankHolidayEvent> bankHolidaysToAdded)
+        public List<Models.AvailableDateAddRemoveResult> AddBankHolidayDates(List<Models.BankHolidayEvent> bankHolidaysToBeAdded)
         {
             // Creates a list of results keep track of the added / skipped dates
             List<Models.AvailableDateAddRemoveResult> results = new List<Models.AvailableDateAddRemoveResult>();
 
             // Adds the bank holiday to the list of available days
-            foreach (var bankHoliday in bankHolidaysToAdded)
+            foreach (var bankHoliday in bankHolidaysToBeAdded)
             {
-                // If the bank holiday is already in the available dates then skip it
-                if (this.AvailableDates.Any(x => x.Date == bankHoliday.Date))
-                {
-                    results.Add(new AvailableDateAddRemoveResult
-                    {
-                        Date = bankHoliday.Date,
-                        Action = "Skipped",
-                        Reason = $"{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) is already in the available dates."
-                    });
+                // Check if the date is okay to be added to the list
+                var reason = ValidateDate(bankHoliday.Date);
 
+                if (reason != null)
+                {
+                    results.Add(CreateResult(bankHoliday.Date, "Skipped", $"{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) {reason}"));
                     continue;
                 }
 
-                // If the bank holiday matches any of the excluded dates then skip it
-                if (_applicationSettings.Settings.ExcludedDates.Any(x => x.Date == bankHoliday.Date))
-                {
-                    results.Add(new AvailableDateAddRemoveResult
-                    {
-                        Date = bankHoliday.Date,
-                        Action = "Skipped",
-                        Reason = $"{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) is an excluded date."
-                    });
-
-                    continue;
-                }
-
-                // If the bank holiday is within 1 day of an exisiting avaiable date then skip it
-                if (this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(-1)) ||
-                    this.AvailableDates.Any(x => x.Date == bankHoliday.Date.AddDays(1)))
-                {
-                    results.Add(new AvailableDateAddRemoveResult
-                    {
-                        Date = bankHoliday.Date,
-                        Action = "Skipped",
-                        Reason = $"{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) is too close to an exisiting matchday."
-                    });
-
-                    continue;
-                }
-
-                // None of the previous conditions have been met - add the bank holiday
-                // to the list of available dates
+                // Validation passed and the date can be added to the list of available dates
                 this.AvailableDates.Add(new Models.AvailableDates
                 {
                     Date = bankHoliday.Date,
-                    IsPrimaryMatchday = (bankHoliday.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false
+                    IsPrimaryMatchday = (bankHoliday.Date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay) ? true : false,
+                    IsBankHoliday = true,
+                    Description = bankHoliday.Title
                 });
 
-                // Bank holiday was added
-                results.Add(new AvailableDateAddRemoveResult
-                {
-                    Date = bankHoliday.Date,
-                    Action = "Added",
-                    Reason = $"{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) was added."
-                });
+                // Add the date being added to the results
+                results.Add(CreateResult(bankHoliday.Date, "Added", $"{bankHoliday.Date:dd/MM/yyyy} ({bankHoliday.Title}) was added"));
             }
 
             return results;
+        }
+
+        /// <summary>
+        /// Creates a list of primary matchdays between the dates in the application settings
+        /// </summary>
+        /// <returns></returns>
+        private List<Models.AvailableDates> GetPrimaryDates()
+        {
+            var primaryDates = new List<AvailableDates>();
+
+            // Find the first matching primary matchday on or after the startDate
+            int daysUntilMatchday = ((int)_applicationSettings.Settings.PrimaryMatchDay - (int)_applicationSettings.Settings.StartDate.DayOfWeek + 7) % 7;
+            var firstMatchDate = _applicationSettings.Settings.StartDate.AddDays(daysUntilMatchday);
+
+            // Iterate by weeks instead of days
+            for (var date = firstMatchDate; date <= _applicationSettings.Settings.EndDate; date = date.AddDays(7))
+            {
+                primaryDates.Add(new Models.AvailableDates
+                {
+                    Date = date,
+                    IsPrimaryMatchday = date.DayOfWeek == _applicationSettings.Settings.PrimaryMatchDay
+                });
+            }
+
+            return primaryDates.ToList();
         }
 
         /// <summary>
